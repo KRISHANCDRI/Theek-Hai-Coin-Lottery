@@ -1,126 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Theek Hai Coin Lottery</title>
-  <!-- Solana & SPL Token Libraries -->
-  <script src="https://unpkg.com/@solana/web3.js@1.91.5/lib/index.iife.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.5.0/lib/index.iife.js"></script>
+  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+  <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 0;}
-    .container { max-width: 400px; margin: 50px auto; background: white; border-radius: 20px; box-shadow: 0 4px 20px #0001; padding: 32px; text-align: center;}
-    .btn { padding: 12px 24px; background: #8247e5; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer;}
-    .btn:disabled { background: #c5b0ee;}
-    .wallet { margin: 18px 0 36px 0; }
-    .info { font-size: 15px; margin: 10px 0; }
-    a { color: #8247e5; text-decoration: underline;}
+    body {
+      font-family: sans-serif;
+      padding: 2em;
+      text-align: center;
+    }
+    button {
+      padding: 0.75em 1.5em;
+      font-size: 1em;
+      background-color: #7e3ff2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 1em;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Theek Hai Coin Lottery</h1>
-    <div id="wallet" class="wallet"></div>
-    <div id="status" class="info"></div>
-    <button class="btn" id="connectBtn">Connect Phantom Wallet</button>
-    <button class="btn" id="joinBtn" style="margin-top:20px; display:none;">Join Lottery for $10 in TH COIN</button>
-    <div style="margin-top:20px; font-size:13px; color:#666;">
-      <b>Lottery Pool Address:</b><br>
-      DkfuWLCfnbNjb3EnBCttjExGar7AK78SuNNj8xZNSNLj
-    </div>
-  </div>
- <script>
-  const TH_COIN_MINT = '8cHTywDEarRcKdBTndHgPnSGANVnGNDbmc7dDVhkpump';
-  const LOTTERY_ADDRESS = 'DkfuWLCfnbNjb3EnBCttjExGar7AK78SuNNj8xZNSNLj';
-  const ENTRY_AMOUNT = 10; // $10 in TH COIN (full coins, 10 = 10 TH COIN)
+  <h1>Theek Hai Coin <br/>Lottery</h1>
+  <p id="wallet-address">Wallet: Not Connected</p>
+  <p id="error-msg" style="color: red;"></p>
+  <button onclick="joinLottery()">Join Lottery for $10 in TH COIN</button>
+  <p style="margin-top: 2em;">
+    <strong>Lottery Pool Address:</strong><br/>
+    DkfuWLCfnbNjb3EnBCttjExGar7AK78SuNNj8xZNSNLj
+  </p>
 
-  const connectBtn = document.getElementById('connectBtn');
-  const joinBtn = document.getElementById('joinBtn');
-  const walletDiv = document.getElementById('wallet');
-  const statusDiv = document.getElementById('status');
+  <script>
+    const { Connection, PublicKey, clusterApiUrl, Transaction } = solanaWeb3;
+    const {
+      getAssociatedTokenAddress,
+      createTransferInstruction,
+      getAccount,
+      TOKEN_PROGRAM_ID
+    } = splToken;
 
-  let provider = null;
-  let publicKey = null;
+    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+    const TOKEN_MINT = new PublicKey("PUT_YOUR_THCOIN_MINT_HERE"); // <-- Replace this with actual token mint address
+    const LOTTERY_POOL = new PublicKey("DkfuWLCfnbNjb3EnBCttjExGar7AK78SuNNj8xZNSNLj");
+    let userPublicKey = null;
 
-  function getProvider() {
-    if ('solana' in window) {
-      const provider = window.solana;
-      if (provider.isPhantom) return provider;
+    // Auto-connect on load
+    window.addEventListener("load", async () => {
+      if (window.solana && window.solana.isPhantom) {
+        try {
+          const resp = await window.solana.connect();
+          userPublicKey = resp.publicKey;
+          document.getElementById("wallet-address").innerText =
+            "Wallet: " + userPublicKey.toBase58().slice(0, 6) + "..." +
+            userPublicKey.toBase58().slice(-6);
+        } catch (err) {
+          console.error("Wallet connection failed", err);
+        }
+      } else {
+        alert("Phantom wallet not detected!");
+      }
+    });
+
+    async function joinLottery() {
+      try {
+        const userTokenAccount = await getAssociatedTokenAddress(
+          TOKEN_MINT,
+          userPublicKey
+        );
+
+        const poolTokenAccount = await getAssociatedTokenAddress(
+          TOKEN_MINT,
+          LOTTERY_POOL
+        );
+
+        const ix = createTransferInstruction(
+          userTokenAccount,
+          poolTokenAccount,
+          userPublicKey,
+          10_000_000 // Adjust for 6 decimal tokens = 10 THCOIN
+        );
+
+        const tx = new Transaction().add(ix);
+        tx.feePayer = userPublicKey;
+
+        const { blockhash } = await connection.getLatestBlockhash();
+        tx.recentBlockhash = blockhash;
+
+        const signed = await window.solana.signTransaction(tx);
+        const sig = await connection.sendRawTransaction(signed.serialize());
+        await connection.confirmTransaction(sig, "confirmed");
+
+        alert("You have joined the lottery!");
+      } catch (err) {
+        console.error(err);
+        document.getElementById("error-msg").innerText = "Error: " + err.message;
+      }
     }
-    window.open('https://phantom.app/', '_blank');
-  }
-
-  connectBtn.onclick = async () => {
-    provider = getProvider();
-    if (!provider) return;
-    try {
-      const resp = await provider.connect();
-      publicKey = resp.publicKey.toString();
-      walletDiv.textContent = 'Wallet: ' + publicKey.slice(0,6) + '...' + publicKey.slice(-6);
-      connectBtn.style.display = 'none';
-      joinBtn.style.display = '';
-      statusDiv.textContent = '';
-    } catch (err) {
-      statusDiv.textContent = 'Connection cancelled.';
-    }
-  };
-
-  joinBtn.onclick = async () => {
-    if (!publicKey) return alert('Connect wallet first!');
-    joinBtn.disabled = true;
-    statusDiv.textContent = 'Preparing transaction...';
-
-    try {
-      const connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com');
-      const fromWallet = new solanaWeb3.PublicKey(publicKey);
-      const toWallet = new solanaWeb3.PublicKey(LOTTERY_ADDRESS);
-      const mint = new solanaWeb3.PublicKey(TH_COIN_MINT);
-
-      // Get or create associated token accounts
-      const fromTokenAccount = await SPLToken.Token.getAssociatedTokenAddress(
-        SPLToken.ASSOCIATED_TOKEN_PROGRAM_ID,
-        SPLToken.TOKEN_PROGRAM_ID,
-        mint,
-        fromWallet
-      );
-      const toTokenAccount = await SPLToken.Token.getAssociatedTokenAddress(
-        SPLToken.ASSOCIATED_TOKEN_PROGRAM_ID,
-        SPLToken.TOKEN_PROGRAM_ID,
-        mint,
-        toWallet
-      );
-
-      // 9 decimals for SPL tokens (standard)
-      const amountToSend = ENTRY_AMOUNT * (10 ** 9);
-
-      // Build transfer instruction
-      const ix = SPLToken.Token.createTransferInstruction(
-        SPLToken.TOKEN_PROGRAM_ID,
-        fromTokenAccount,
-        toTokenAccount,
-        fromWallet,
-        [],
-        amountToSend
-      );
-
-      // Create and send transaction
-      const transaction = new solanaWeb3.Transaction().add(ix);
-      transaction.feePayer = fromWallet;
-      let { blockhash } = await connection.getRecentBlockhash();
-      transaction.recentBlockhash = blockhash;
-
-      let signed = await provider.signTransaction(transaction);
-      let signature = await connection.sendRawTransaction(signed.serialize());
-
-      statusDiv.textContent = 'Sent! Confirming on blockchain...';
-
-      await connection.confirmTransaction(signature, 'confirmed');
-
-      statusDiv.innerHTML = `✅ Success! <a href="https://explorer.solana.com/tx/${signature}" target="_blank">View transaction</a>`;
-    } catch (e) {
-      statusDiv.textContent = "Error: " + (e.message || e);
-    }
-    joinBtn.disabled = false;
-  };
-</script>
+  </script>
 </body>
 </html>
