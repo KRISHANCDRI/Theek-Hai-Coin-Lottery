@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Thank You - Theek Hai Lottery</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .centered {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div class="centered">
+        <h1>🎉 Ticket Submitted Successfully! 🎉</h1>
+        <p>Thank you for participating in Theek Hai Coin Lottery.</p>
+        <p><a href="index.html">Submit another ticket</a> | <a href="https://solscan.io/account/DkfuWLCfnbNjb3EnBCttjExGar7AK78SuNNj8xZNSNLj" target="_blank">Check Developer Wallet</a></p>
+        <p style="font-size:0.9em;color:gray;">Your transaction will be confirmed on Solana within a few seconds.</p>
+    </div>
+    <div id="txBox" class="tx-link"></div>
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const sig = params.get('tx');
+    if(sig) {
+        document.getElementById('txBox').innerHTML = `
+            <b>Transaction Signature:</b><br>
+            <a href="https://solscan.io/tx/${sig}" target="_blank">${sig}</a>
+            <br><span style="color:green;">You can track your ticket transaction above.<br>It may take 15-30 seconds to show as "confirmed" on Solscan.</span>
+        `;
+    }
+</script>
+
+</body>
+</html>
