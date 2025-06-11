@@ -48,8 +48,8 @@ connectBtn.addEventListener('click', async () => {
         }
         return;
     }
-    // baaki code...
-});
+
+
 
 
 
@@ -257,7 +257,7 @@ buyBtn.addEventListener('click', async () => {
     } catch (e) {
         messageDiv.innerHTML = `<span class="text-danger">Token transfer failed: ${e.message || e}</span>`;
     }
-});
+});});
 
 // Initial load: update button price info as soon as page loads
 updateButtonForThBalance();
