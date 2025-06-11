@@ -26,6 +26,24 @@ function getProvider() {
     }
     return null;
 }
+function isMobile() {
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+}
+
+connectBtn.addEventListener('click', async () => {
+    const provider = getProvider();
+    if (!provider) {
+        if (isMobile()) {
+            walletAddressDiv.innerHTML = `<span class="text-danger">Mobile par Phantom Wallet integration sirf Phantom App ke in-app browser me kaam karega.<br>
+            <a href="https://phantom.app/ul/browse/${window.location.href}" target="_blank">Yahan tap karo aur open in Phantom app</a></span>`;
+        } else {
+            walletAddressDiv.innerHTML = `<span class="text-danger">Phantom Wallet install karo: <a href="https://phantom.app/" target="_blank">phantom.app</a></span>`;
+        }
+        return;
+    }
+    // ...baaki logic
+});
+
 
 // --- Get SPL token decimals (mainnet) ---
 async function getTokenDecimals(mintAddress, connection) {
