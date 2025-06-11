@@ -34,15 +34,23 @@ connectBtn.addEventListener('click', async () => {
     const provider = getProvider();
     if (!provider) {
         if (isMobile()) {
-            walletAddressDiv.innerHTML = `<span class="text-danger">Mobile par Phantom Wallet integration sirf Phantom App ke in-app browser me kaam karega.<br>
-            <a href="https://phantom.app/ul/browse/${window.location.href}" target="_blank">Yahan tap karo aur open in Phantom app</a></span>`;
+            walletAddressDiv.innerHTML = `
+                <span class="text-danger">
+                    Mobile pe Phantom Wallet connect karne ke liye:<br>
+                    <a href="https://phantom.app/ul/browse/${window.location.href}" target="_blank">
+                        Open in Phantom App
+                    </a>
+                </span>`;
         } else {
-            walletAddressDiv.innerHTML = `<span class="text-danger">Phantom Wallet install karo: <a href="https://phantom.app/" target="_blank">phantom.app</a></span>`;
+            walletAddressDiv.innerHTML = `<span class="text-danger">
+                Phantom Wallet install karo: <a href="https://phantom.app/" target="_blank">phantom.app</a>
+            </span>`;
         }
         return;
     }
-    // ...baaki logic
+    // baaki code...
 });
+
 
 
 // --- Get SPL token decimals (mainnet) ---
