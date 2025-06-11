@@ -26,30 +26,6 @@ function getProvider() {
     }
     return null;
 }
-function isMobile() {
-    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-}
-
-connectBtn.addEventListener('click', async () => {
-    const provider = getProvider();
-    if (!provider) {
-        if (isMobile()) {
-            walletAddressDiv.innerHTML = `
-                <span class="text-danger">
-                    Mobile pe Phantom Wallet connect karne ke liye:<br>
-                    <a href="https://phantom.app/ul/browse/${window.location.href}" target="_blank">
-                        Open in Phantom App
-                    </a>
-                </span>`;
-        } else {
-            walletAddressDiv.innerHTML = `<span class="text-danger">
-                Phantom Wallet install karo: <a href="https://phantom.app/" target="_blank">phantom.app</a>
-            </span>`;
-        }
-        return;
-    }
-
-
 
 
 
@@ -257,7 +233,8 @@ buyBtn.addEventListener('click', async () => {
     } catch (e) {
         messageDiv.innerHTML = `<span class="text-danger">Token transfer failed: ${e.message || e}</span>`;
     }
-});});
+});
+
 
 // Initial load: update button price info as soon as page loads
 updateButtonForThBalance();
