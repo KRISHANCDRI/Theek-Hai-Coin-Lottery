@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Theek Hai Coin Lottery</title>
-   
-
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <!-- Bootstrap for nice design -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="style.css">
+
+    <!-- Solana web3.js and spl-token -->
+    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@latest/lib/index.iife.min.js"></script>
 </head>
 <body>
     <div class="container mt-5">
         <div class="card shadow-lg p-4 mx-auto" style="max-width: 500px;">
             <div class="text-center mt-3">
-  <img src="Theeh_hai_logo.png" alt="Theek Hai Coin Logo" style="width:90px;max-width:30vw;">
-</div>
-
+                <img src="Theeh_hai_logo.png" alt="Theek Hai Coin Logo" style="width:90px;max-width:30vw;">
+            </div>
             <h1 class="text-center mb-3">Theek Hai Coin Lottery</h1>
             <p class="text-center text-secondary mb-4">
                 Buy lottery tickets with SOL and win Theek Hai Coin prizes!
@@ -30,17 +32,13 @@
                 <input type="number" id="ticketCount" class="form-control" placeholder="Number of tickets" min="1" value="1">
             </div>
             <div class="d-grid">
-                <button id="buyBtn" class="btn btn-success">Buy Lottery </button>
+                <button id="buyBtn" class="btn btn-success">Buy Lottery</button>
             </div>
             <div id="message" class="mt-3 text-center"></div>
         </div>
     </div>
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@latest/lib/index.iife.min.js"></script>
-<script src="wallet.js"></script>
 
-    
-    <!-- JS will be added later -->
+    <!-- IMPORTANT: Your wallet.js must load after web3.js and spl-token -->
+    <script src="wallet.js"></script>
 </body>
 </html>
