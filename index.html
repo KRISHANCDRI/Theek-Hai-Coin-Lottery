@@ -21,7 +21,7 @@
             </div>
             <h1 class="text-center mb-3">Theek Hai Coin Lottery</h1>
             <p class="text-center text-secondary mb-4">
-                Buy lottery tickets with SOL and win Theek Hai Coin prizes!
+                Buy lottery tickets with <b>Theek Hai Coin</b> and win more <b>Theek Hai Coin</b>!
             </p>
             <div class="mb-3 text-center">
                 <button id="connectWalletBtn" class="btn btn-primary">Connect Wallet</button>
@@ -32,10 +32,10 @@
                 <input type="number" id="ticketCount" class="form-control" placeholder="Number of tickets" min="1" value="1">
             </div>
             <div class="d-grid">
-                <button id="buyBtn" class="btn btn-success">Buy Lottery</button>
+                <button id="buyBtn" class="btn btn-success" disabled>Buy Lottery</button>
             </div>
             <div class="alert alert-info mt-3" id="lotteryDetails">
-                <b>Entry fee:</b> 1 SOL per player<br>
+                <b>Entry fee:</b> 10,000 TH COIN per ticket<br>
                 <b>Total players per round:</b> 10<br>
                 <b>Reward categories:</b>
                 <ul>
@@ -44,35 +44,39 @@
                     <li>5 players: 0.5×</li>
                     <li>1 player: 0×</li>
                 </ul>
-                <b>Lottery Price:</b> $10 per ticket<br>
+                <b>All winnings in Theek Hai Coin</b>
             </div>
             <div id="currentLotteryStatus" class="mt-3"></div>
+            
+            <!-- Last lottery status button area -->
+            <div id="lastLotteryDiv" style="display:none;" class="text-center mt-2">
+                <button id="lastLotteryBtn" class="btn btn-warning">Show Last Lottery Status</button>
+            </div>
+            <div id="lastLotteryStatus"></div>
+            
             <div id="userHistory" class="mt-4"></div>
             <div id="message" class="mt-3 text-center"></div>
         </div>
     </div>
 
     <!-- ============ FIREBASE SDK, paste your config here =============== -->
-    <!-- Firebase SDK scripts (add below your other scripts, above wallet.js) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyD6atNtnMW3joM6bfWdA3-aRYY0xK4G6ic",
-    authDomain: "bhas-cac12.firebaseapp.com",
-    projectId: "bhas-cac12",
-    storageBucket: "bhas-cac12.appspot.com",   <!-- Yeh correct hai, aapke config me galat hai! -->
-    messagingSenderId: "634048404461",
-    appId: "1:634048404461:web:8034b69243d9f4087c25e4",
-    measurementId: "G-CB4011DS4V"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-</script>
-
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyD6atNtnMW3joM6bfWdA3-aRYY0xK4G6ic",
+        authDomain: "bhas-cac12.firebaseapp.com",
+        projectId: "bhas-cac12",
+        storageBucket: "bhas-cac12.appspot.com",
+        messagingSenderId: "634048404461",
+        appId: "1:634048404461:web:8034b69243d9f4087c25e4",
+        measurementId: "G-CB4011DS4V"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+    </script>
     <!-- =============================== -->
 
-    <!-- Your wallet.js must load after web3.js and spl-token and Firebase -->
     <script src="wallet.js"></script>
 </body>
 </html>
