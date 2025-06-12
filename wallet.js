@@ -160,25 +160,14 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // --- Connect Wallet Event ---
     connectBtn.addEventListener('click', async () => {
-        const provider = getProvider();
-        if (!provider) {
-            if (isMobile()) {
-                walletAddressDiv.innerHTML = `
-                    <span class="text-danger">
-                        Mobile pe Phantom Wallet connect karne ke liye:<br>
-                        <a href="https://phantom.app/ul/browse/${window.location.href}" target="_blank">
-                            Open in Phantom App
-                        </a>
-                    </span>`;
-            } else {
-                walletAddressDiv.innerHTML = `<span class="text-danger">
-                    Phantom Wallet install karo: <a href="https://phantom.app/" target="_blank">phantom.app</a>
-                </span>`;
-            }
-            return;
-        }
-        try {
-            const resp = await provider.connect();
+    const provider = getProvider();
+    if (!provider) {
+        // ...your mobile/desktop Phantom not installed code...
+        return;
+    }
+    try {
+        const resp = await provider.connect();
+        if (resp && resp.publicKey) {
             currentWalletAddress = resp.publicKey.toString();
             walletAddressDiv.innerHTML = `<span class="text-success">Wallet Connected:<br>${currentWalletAddress}</span>`;
             connectBtn.innerText = "Connected!";
@@ -186,6 +175,7 @@ window.addEventListener('DOMContentLoaded', function() {
             connectBtn.classList.add("btn-secondary");
             connectBtn.disabled = true;
             buyBtn.disabled = false; // enable buy button
+            messageDiv.innerHTML = ""; // remove error message!
             await showThCoinBalance(resp.publicKey);
             await createOrUpdateUser(currentWalletAddress);
             await fetchCurrentLotteryStatus();
@@ -198,10 +188,14 @@ window.addEventListener('DOMContentLoaded', function() {
             } else {
                 lastLotteryDiv.style.display = "none";
             }
-        } catch (err) {
-            walletAddressDiv.innerHTML = `<span class="text-danger">User cancelled connection</span>`;
+        } else {
+            walletAddressDiv.innerHTML = `<span class="text-danger">Wallet connection failed</span>`;
         }
-    });
+    } catch (err) {
+        walletAddressDiv.innerHTML = `<span class="text-danger">User cancelled connection</span>`;
+        messageDiv.innerHTML = "";
+    }
+});
 
     // --- Buy/Submit Ticket Logic ---
     buyBtn.addEventListener('click', async () => {
