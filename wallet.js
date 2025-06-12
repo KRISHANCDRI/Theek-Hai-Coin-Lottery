@@ -298,4 +298,20 @@ window.addEventListener('DOMContentLoaded', function() {
     // Last Lottery Status button logic
     if (lastLotteryBtn) {
         lastLotteryBtn.onclick = async function() {
-           
+            if (!currentWalletAddress) return;
+            let userHistoryQuery = await db.collection("users").doc(currentWalletAddress).collection("history").orderBy("createdAt", "desc").limit(1).get();
+            if (!userHistoryQuery.empty) {
+                let doc = userHistoryQuery.docs[0].data();
+                lastLotteryStatus.innerHTML = `
+                    <b>Last Lottery Status:</b><br>
+                    Ticket: ${doc.ticket}<br>
+                    Result: ${doc.result}<br>
+                    Amount Won: ${doc.amountWon} TH Coin
+                `;
+            }
+        };
+    }
+
+    // Initial load (show lottery status if not connected)
+    fetchCurrentLotteryStatus();
+});
