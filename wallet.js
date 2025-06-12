@@ -6,7 +6,72 @@ const LAMPORTS_PER_SOL = 1000000000;
 const ALCHEMY_RPC = "https://solana-mainnet.g.alchemy.com/v2/Ed6vg1OhAsJ4gEJB0-CdDiIjvZ4DaH_g";
 const GECKO_POOL_API = "https://api.geckoterminal.com/api/v2/networks/solana/pools/4Fycv4c8kNC2zuP9L7QTu91rZKdQ8DjrQwjACVxt8ofC";
 
-// DOM READY LOGIC
+// ========== FIREBASE LOTTERY STATUS FUNCTIONS ==========
+async function fetchCurrentLotteryStatus() {
+    try {
+        const doc = await db.collection("lottery").doc("current").get();
+        if (!doc.exists) {
+            document.getElementById('currentLotteryStatus').innerHTML = "No current lottery round found.";
+            return;
+        }
+        const data = doc.data();
+        document.getElementById('currentLotteryStatus').innerHTML = `
+            <b>Current Round:</b> #${data.round}<br>
+            <b>Players:</b> ${data.players} / 10<br>
+            <b>Pool Amount:</b> ${data.poolAmount} SOL
+        `;
+    } catch (err) {
+        document.getElementById('currentLotteryStatus').innerHTML = "Error fetching lottery status.";
+    }
+}
+
+// ========== FIREBASE USER HISTORY ==========
+async function fetchAndShowHistory(walletAddress) {
+    let query = await db.collection("users").doc(walletAddress).collection("history").get();
+    let data = [];
+    query.forEach(doc => data.push(doc.data()));
+
+    if(data && data.length > 0) {
+        let html = `<table class="table"><tr>
+            <th>Round</th><th>Ticket #</th><th>Result</th><th>Amount Won</th><th>Withdraw</th>
+        </tr>`;
+        data.forEach((entry, idx) => {
+            html += `<tr>
+                <td>${entry.round}</td>
+                <td>${entry.ticket}</td>
+                <td>${entry.result}</td>
+                <td>${entry.amountWon} SOL</td>
+                <td>${entry.withdrawn ? "✅" : (entry.amountWon > 0 ? `<button onclick="withdraw('${walletAddress}','${entry.id}')">Withdraw</button>` : "-")}</td>
+            </tr>`;
+        });
+        html += "</table>";
+        document.getElementById('userHistory').innerHTML = html;
+    } else {
+        document.getElementById('userHistory').innerHTML = '<span class="text-muted">No entries yet.</span>';
+    }
+}
+
+// ========== FIREBASE USER CREATE ==========
+async function createOrUpdateUser(walletAddress) {
+    const userRef = db.collection("users").doc(walletAddress);
+    const docSnap = await userRef.get();
+    if (!docSnap.exists) {
+        await userRef.set({
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+}
+
+// ========== FIREBASE WITHDRAW ==========
+window.withdraw = async function(walletAddress, historyId) {
+    await db.collection("users").doc(walletAddress).collection("history").doc(historyId).update({
+        withdrawn: true
+    });
+    alert("Withdraw request submitted! (Real token transfer needs backend, abhi yeh sirf status badalta hai)");
+    location.reload();
+};
+
+// ========== REST OF YOUR WALLET LOGIC ==========
 window.addEventListener('DOMContentLoaded', function() {
     // --- HTML elements ---
     const connectBtn = document.getElementById('connectWalletBtn');
@@ -16,8 +81,8 @@ window.addEventListener('DOMContentLoaded', function() {
     const ticketInput = document.getElementById('ticketCount');
 
     let userThBalance = 0;
+    let currentWalletAddress = null;
 
-    // Phantom provider check
     function getProvider() {
         if ('solana' in window) {
             const provider = window.solana;
@@ -37,7 +102,6 @@ window.addEventListener('DOMContentLoaded', function() {
         return mintAccountInfo.value.data.parsed.info.decimals;
     }
 
-    // Geckoterminal API for TH Coin price
     async function getTHCoinPriceUSD() {
         try {
             let res = await fetch(GECKO_POOL_API);
@@ -47,15 +111,12 @@ window.addEventListener('DOMContentLoaded', function() {
             return null;
         }
     }
-
-    // TH Coin per USD
     async function getThCoinPerUSD() {
         let price = await getTHCoinPriceUSD();
         if (price && price > 0) return 1 / price;
         return null;
     }
 
-    // Show TH balance
     async function showThCoinBalance(publicKey) {
         try {
             const connection = new solanaWeb3.Connection(ALCHEMY_RPC, "confirmed");
@@ -90,7 +151,6 @@ window.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Update button for price/balance
     async function updateButtonForThBalance() {
         let ticketCount = parseInt(ticketInput.value);
         if (isNaN(ticketCount) || ticketCount < 1) ticketCount = 1;
@@ -115,7 +175,6 @@ window.addEventListener('DOMContentLoaded', function() {
     connectBtn.addEventListener('click', async () => {
         const provider = getProvider();
         if (!provider) {
-            // Special handling for mobile
             if (isMobile()) {
                 walletAddressDiv.innerHTML = `
                     <span class="text-danger">
@@ -133,12 +192,17 @@ window.addEventListener('DOMContentLoaded', function() {
         }
         try {
             const resp = await provider.connect();
-            walletAddressDiv.innerHTML = `<span class="text-success">Wallet Connected:<br>${resp.publicKey.toString()}</span>`;
+            currentWalletAddress = resp.publicKey.toString();
+            walletAddressDiv.innerHTML = `<span class="text-success">Wallet Connected:<br>${currentWalletAddress}</span>`;
             connectBtn.innerText = "Connected!";
             connectBtn.classList.remove("btn-primary");
             connectBtn.classList.add("btn-secondary");
             connectBtn.disabled = true;
             await showThCoinBalance(resp.publicKey);
+            // FIREBASE INTEGRATION:
+            await createOrUpdateUser(currentWalletAddress);
+            await fetchCurrentLotteryStatus();
+            await fetchAndShowHistory(currentWalletAddress);
         } catch (err) {
             walletAddressDiv.innerHTML = `<span class="text-danger">User cancelled connection</span>`;
         }
@@ -168,11 +232,7 @@ window.addEventListener('DOMContentLoaded', function() {
         try {
             messageDiv.innerHTML = "Transaction processing, please approve in Phantom wallet...";
             const connection = new solanaWeb3.Connection(ALCHEMY_RPC, "confirmed");
-
-            // Get decimals dynamically!
             const decimals = await getTokenDecimals(THEEK_HAI_MINT, connection);
-
-            // Get user's TH COIN token account
             const fromTokenAccounts = await connection.getParsedTokenAccountsByOwner(
                 provider.publicKey,
                 { mint: new solanaWeb3.PublicKey(THEEK_HAI_MINT) }
@@ -183,7 +243,6 @@ window.addEventListener('DOMContentLoaded', function() {
             }
             const fromTokenAccountPubkey = new solanaWeb3.PublicKey(fromTokenAccounts.value[0].pubkey);
 
-            // Get pool's TH COIN token account
             let toTokenAccounts = await connection.getParsedTokenAccountsByOwner(
                 new solanaWeb3.PublicKey(POOL_WALLET),
                 { mint: new solanaWeb3.PublicKey(THEEK_HAI_MINT) }
@@ -196,10 +255,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 toTokenAccountPubkey = new solanaWeb3.PublicKey(toTokenAccounts.value[0].pubkey);
             }
 
-            // Amount to send in smallest unit:
             const amountToSend = Math.round(thCoinToSend * Math.pow(10, decimals));
-
-            // SPL Token transfer
             const splToken = window.splToken;
             let transferIx = splToken.Token.createTransferInstruction(
                 splToken.TOKEN_PROGRAM_ID,
@@ -218,12 +274,28 @@ window.addEventListener('DOMContentLoaded', function() {
             let signed = await provider.signTransaction(transaction);
             let signature = await connection.sendRawTransaction(signed.serialize());
 
+            // FIREBASE: Add user ticket entry
+            let walletAddress = provider.publicKey.toString();
+            let userRef = db.collection("users").doc(walletAddress);
+            let historyCol = userRef.collection("history");
+            let newDoc = historyCol.doc();
+            await newDoc.set({
+                id: newDoc.id,
+                round: 1, // TODO: fetch from lottery status or increment logic
+                ticket: Date.now(), // can be more meaningful
+                result: "pending",
+                amountWon: 0,
+                withdrawn: false,
+                signature: signature,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
             window.location.href = "thankyou.html?tx=" + signature;
         } catch (e) {
             messageDiv.innerHTML = `<span class="text-danger">Token transfer failed: ${e.message || e}</span>`;
         }
     });
 
-    // Initial load
-    updateButtonForThBalance();
+    // Initial load (show lottery status if not connected)
+    fetchCurrentLotteryStatus();
 });
