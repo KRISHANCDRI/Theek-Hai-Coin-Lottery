@@ -198,7 +198,11 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
     // --- Buy/Submit Ticket Logic ---
-    buyBtn.addEventListener('click', async () => {
+  buyBtn.addEventListener('click', async () => {
+    if (!currentWalletAddress) {
+        messageDiv.innerHTML = '<span class="text-danger">Pehle wallet connect karo.</span>';
+        return;
+    }
         // Disallow buy if wallet is not connected
         if (!currentWalletAddress) {
             messageDiv.innerHTML = '<span class="text-danger">Pehle wallet connect karo.</span>';
