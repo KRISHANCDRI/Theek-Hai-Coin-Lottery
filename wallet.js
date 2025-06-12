@@ -1,10 +1,9 @@
 // == CONFIG ==
 const THEEK_HAI_MINT = "8cHTywDEarRcKdBTndHgPnSGANVnGNDbmc7dDVhkpump";
 const POOL_WALLET = "DkfuWLCfnbNjb3EnBCttjExGar7AK78SuNNj8xZNSNLj";
-const USD_PER_TICKET = 10;
+const ENTRY_FEE_TH = 10000; // 10,000 Theek Hai Coin per ticket
 const LAMPORTS_PER_SOL = 1000000000;
 const ALCHEMY_RPC = "https://solana-mainnet.g.alchemy.com/v2/Ed6vg1OhAsJ4gEJB0-CdDiIjvZ4DaH_g";
-const GECKO_POOL_API = "https://api.geckoterminal.com/api/v2/networks/solana/pools/4Fycv4c8kNC2zuP9L7QTu91rZKdQ8DjrQwjACVxt8ofC";
 
 // ========== FIREBASE LOTTERY STATUS FUNCTIONS ==========
 async function fetchCurrentLotteryStatus() {
@@ -17,8 +16,8 @@ async function fetchCurrentLotteryStatus() {
         const data = doc.data();
         document.getElementById('currentLotteryStatus').innerHTML = `
             <b>Current Round:</b> #${data.round}<br>
-            <b>Players:</b> ${data.players} / 10<br>
-            <b>Pool Amount:</b> ${data.poolAmount} SOL
+            <b>Players:</b> ${data.players || 0} / 10<br>
+            <b>Pool Amount:</b> ${(data.players ? data.players * ENTRY_FEE_TH : 0).toLocaleString()} TH COIN
         `;
     } catch (err) {
         document.getElementById('currentLotteryStatus').innerHTML = "Error fetching lottery status.";
@@ -27,7 +26,7 @@ async function fetchCurrentLotteryStatus() {
 
 // ========== FIREBASE USER HISTORY ==========
 async function fetchAndShowHistory(walletAddress) {
-    let query = await db.collection("users").doc(walletAddress).collection("history").get();
+    let query = await db.collection("users").doc(walletAddress).collection("history").orderBy("createdAt", "desc").get();
     let data = [];
     query.forEach(doc => data.push(doc.data()));
 
@@ -40,7 +39,7 @@ async function fetchAndShowHistory(walletAddress) {
                 <td>${entry.round}</td>
                 <td>${entry.ticket}</td>
                 <td>${entry.result}</td>
-                <td>${entry.amountWon} SOL</td>
+                <td>${entry.amountWon} TH COIN</td>
                 <td>${entry.withdrawn ? "✅" : (entry.amountWon > 0 ? `<button onclick="withdraw('${walletAddress}','${entry.id}')">Withdraw</button>` : "-")}</td>
             </tr>`;
         });
@@ -79,9 +78,15 @@ window.addEventListener('DOMContentLoaded', function() {
     const buyBtn = document.getElementById('buyBtn');
     const messageDiv = document.getElementById('message');
     const ticketInput = document.getElementById('ticketCount');
+    const lastLotteryDiv = document.getElementById('lastLotteryDiv');
+    const lastLotteryBtn = document.getElementById('lastLotteryBtn');
+    const lastLotteryStatus = document.getElementById('lastLotteryStatus');
 
     let userThBalance = 0;
     let currentWalletAddress = null;
+
+    // By default, buyBtn disabled
+    buyBtn.disabled = true;
 
     function getProvider() {
         if ('solana' in window) {
@@ -102,21 +107,7 @@ window.addEventListener('DOMContentLoaded', function() {
         return mintAccountInfo.value.data.parsed.info.decimals;
     }
 
-    async function getTHCoinPriceUSD() {
-        try {
-            let res = await fetch(GECKO_POOL_API);
-            let data = await res.json();
-            return parseFloat(data.data.attributes.base_token_price_usd);
-        } catch (err) {
-            return null;
-        }
-    }
-    async function getThCoinPerUSD() {
-        let price = await getTHCoinPriceUSD();
-        if (price && price > 0) return 1 / price;
-        return null;
-    }
-
+    // Show TH balance
     async function showThCoinBalance(publicKey) {
         try {
             const connection = new solanaWeb3.Connection(ALCHEMY_RPC, "confirmed");
@@ -155,17 +146,13 @@ window.addEventListener('DOMContentLoaded', function() {
         let ticketCount = parseInt(ticketInput.value);
         if (isNaN(ticketCount) || ticketCount < 1) ticketCount = 1;
 
-        let thCoinPerUSD = await getThCoinPerUSD();
-        let thCoinForThisTicket = thCoinPerUSD ? Math.round(USD_PER_TICKET * ticketCount * thCoinPerUSD) : '...';
+        let thCoinForThisTicket = ENTRY_FEE_TH * ticketCount;
 
         if (userThBalance >= thCoinForThisTicket) {
             buyBtn.innerText = `Submit Ticket (${thCoinForThisTicket} TH COIN)`;
             buyBtn.className = "btn btn-info";
         } else {
-            let thInfo = thCoinPerUSD
-                ? `(1 USD ≈ ${Math.round(thCoinPerUSD).toLocaleString()} TH COIN)`
-                : "";
-            buyBtn.innerText = `Buy Lottery Tickets (${USD_PER_TICKET * ticketCount} USD ≈ ${thCoinForThisTicket} TH COIN) ${thInfo}`;
+            buyBtn.innerText = `Buy Theek Hai Coin (${thCoinForThisTicket} TH COIN Needed)`;
             buyBtn.className = "btn btn-success";
         }
     }
@@ -198,11 +185,19 @@ window.addEventListener('DOMContentLoaded', function() {
             connectBtn.classList.remove("btn-primary");
             connectBtn.classList.add("btn-secondary");
             connectBtn.disabled = true;
+            buyBtn.disabled = false; // enable buy button
             await showThCoinBalance(resp.publicKey);
-            // FIREBASE INTEGRATION:
             await createOrUpdateUser(currentWalletAddress);
             await fetchCurrentLotteryStatus();
             await fetchAndShowHistory(currentWalletAddress);
+
+            // Show/hide Last Lottery Status button based on history
+            let userHistoryQuery = await db.collection("users").doc(currentWalletAddress).collection("history").orderBy("createdAt", "desc").limit(1).get();
+            if (!userHistoryQuery.empty) {
+                lastLotteryDiv.style.display = "block";
+            } else {
+                lastLotteryDiv.style.display = "none";
+            }
         } catch (err) {
             walletAddressDiv.innerHTML = `<span class="text-danger">User cancelled connection</span>`;
         }
@@ -210,14 +205,18 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // --- Buy/Submit Ticket Logic ---
     buyBtn.addEventListener('click', async () => {
+        // Disallow buy if wallet is not connected
+        if (!currentWalletAddress) {
+            messageDiv.innerHTML = '<span class="text-danger">Pehle wallet connect karo.</span>';
+            return;
+        }
         let ticketCount = parseInt(ticketInput.value);
         if (isNaN(ticketCount) || ticketCount < 1) ticketCount = 1;
 
-        let thCoinPerUSD = await getThCoinPerUSD();
-        let thCoinToSend = thCoinPerUSD ? USD_PER_TICKET * ticketCount * thCoinPerUSD : null;
+        let thCoinToSend = ENTRY_FEE_TH * ticketCount;
 
-        // --- PUMP.FUN REDIRECT LOGIC ---
-        if (!thCoinToSend || userThBalance < thCoinToSend) {
+        // If not enough balance, show buy page
+        if (userThBalance < thCoinToSend) {
             window.open('https://pump.fun/8cHTywDEarRcKdBTndHgPnSGANVnGNDbmc7dDVhkpump', '_blank');
             return;
         }
@@ -296,6 +295,7 @@ window.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initial load (show lottery status if not connected)
-    fetchCurrentLotteryStatus();
-});
+    // Last Lottery Status button logic
+    if (lastLotteryBtn) {
+        lastLotteryBtn.onclick = async function() {
+           
