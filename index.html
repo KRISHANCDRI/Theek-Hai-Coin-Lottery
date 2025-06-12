@@ -53,23 +53,23 @@
     </div>
 
     <!-- ============ FIREBASE SDK, paste your config here =============== -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script>
-      // ================================
-      // TODO: UPDATE THIS CONFIG BELOW!!
-      // ================================
-      const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT_ID.appspot.com",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.firestore();
-    </script>
+    <!-- Firebase SDK scripts (add below your other scripts, above wallet.js) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyD6atNtnMW3joM6bfWdA3-aRYY0xK4G6ic",
+    authDomain: "bhas-cac12.firebaseapp.com",
+    projectId: "bhas-cac12",
+    storageBucket: "bhas-cac12.appspot.com",   <!-- Yeh correct hai, aapke config me galat hai! -->
+    messagingSenderId: "634048404461",
+    appId: "1:634048404461:web:8034b69243d9f4087c25e4",
+    measurementId: "G-CB4011DS4V"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
+
     <!-- =============================== -->
 
     <!-- Your wallet.js must load after web3.js and spl-token and Firebase -->
