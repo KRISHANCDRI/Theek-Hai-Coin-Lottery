@@ -228,10 +228,7 @@ connectBtn.addEventListener('click', async () => {
         } else {
             walletAddressDiv.innerHTML = `<span class="text-danger">Wallet connection failed</span>`;
         }
-    } catch (err) {
-        walletAddressDiv.innerHTML = `<span class="text-danger">User cancelled connection</span>`;
-        messageDiv.innerHTML = "";
-    }
+    } 
 });
 
 // --- Buy/Submit Ticket Logic (Live TH COIN transfer, decimal aware) ---
